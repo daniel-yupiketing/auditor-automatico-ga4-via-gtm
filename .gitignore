@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.streamlit/
+*.log
+informe_auditoria_ga4_*.html
+informe_auditoria_ga4_*.csv
+informe_auditoria_ga4_*.json
+auto_audit_*.json
+.DS_Store
+Thumbs.db
