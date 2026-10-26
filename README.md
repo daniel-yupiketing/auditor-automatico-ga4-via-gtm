@@ -29,8 +29,8 @@ Incluye tanto una **interfaz web interactiva con Streamlit** como una **interfaz
 
 1. Clona este repositorio:
    ```bash
-   git clone https://github.com/daniel-yupiketing/auditor-autom-tico-ga4-via-gtm.git
-   cd auditor-autom-tico-ga4-via-gtm
+   git clone https://github.com/daniel-yupiketing/auditor-automatico-ga4-via-gtm.git
+   cd auditor-automatico-ga4-via-gtm
    ```
 
 2. Instala las dependencias de Python y el navegador Chromium de Playwright:
