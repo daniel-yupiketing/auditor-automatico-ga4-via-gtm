@@ -17,7 +17,7 @@ Incluye tanto una **interfaz web interactiva con Streamlit** como una **interfaz
    - Permite pegar un listado de URL o subir un archivo `.txt` / `.csv`.
    - O bien partir de una URL inicial y descubrir enlaces internos automáticamente.
 3. **Validación estricta frente al contenedor de GTM**:
-   - Incluye integrado por defecto el contenedor `GTM-NK9G27ZB` (`tarifasfibramovil.es`), con opción de subir cualquier otro archivo JSON exportado de GTM.
+   - Incluye integrado por defecto un contenedor de referencia estándar, con opción de subir cualquier otro archivo JSON exportado de GTM.
    - Distingue entre parámetros obligatorios (`ERROR` ❌), recomendados o no recogidos por GTM (`WARNING` ⚠️) y parámetros opcionales en eventos personalizados como `services` o `funnel_step`.
    - Deduplicación inteligente de errores para no duplicar incidencias idénticas y agrupar las URL donde se detectan.
 4. **Informes visuales en HTML, CSV y JSON**:

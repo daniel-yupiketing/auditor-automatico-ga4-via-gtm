@@ -14,7 +14,7 @@ import json
 import argparse
 from typing import Dict, List, Any, Tuple, Optional
 
-DEFAULT_GTM_PATH = r"c:\Users\Usuario\Downloads\GTM-NK9G27ZB_workspace2.json"
+DEFAULT_GTM_PATH = ""
 
 REQUIRED_ITEM_FIELDS = [
     "item_id",
@@ -75,8 +75,7 @@ IGNORED_SYSTEM_EVENTS = {
 
 def get_builtin_default_gtm_spec() -> Dict[str, Any]:
     """
-    Devuelve la especificación por defecto extraída de GTM-NK9G27ZB_workspace2.json
-    para que funcione incluso si el archivo físico en Downloads fue movido o eliminado.
+    Devuelve la especificación del contenedor de referencia integrado por defecto.
     """
     def mk_param(name: str, dl_path: Optional[str], is_comp: bool, ev_name: str) -> Dict[str, Any]:
         return {
@@ -121,8 +120,8 @@ def get_builtin_default_gtm_spec() -> Dict[str, Any]:
         }
 
     return {
-        "container_name": "tarifasfibramovil.es",
-        "public_id": "GTM-NK9G27ZB",
+        "container_name": "Contenedor de referencia",
+        "public_id": "GTM-XXXXXXX",
         "export_time": "",
         "event_rules": rules,
         "tags_summary": [],
@@ -2003,20 +2002,15 @@ def run_streamlit_app() -> None:
     gtm_source = st.sidebar.radio(
         "Origen del contenedor de GTM:",
         options=[
-            "Usar GTM-NK9G27ZB_workspace2.json por defecto",
+            "Usar contenedor de referencia por defecto",
             "Subir otro archivo JSON de GTM",
         ],
     )
 
     gtm_spec = None
-    if gtm_source == "Usar GTM-NK9G27ZB_workspace2.json por defecto":
-        if os.path.exists(DEFAULT_GTM_PATH):
-            with open(DEFAULT_GTM_PATH, "r", encoding="utf-8") as f:
-                gtm_spec = parse_gtm_container(json.load(f))
-            st.sidebar.success(f"Cargado: `{os.path.basename(DEFAULT_GTM_PATH)}`")
-        else:
-            gtm_spec = get_builtin_default_gtm_spec()
-            st.sidebar.success("Cargado: `GTM-NK9G27ZB (integrado por defecto)`")
+    if gtm_source == "Usar contenedor de referencia por defecto":
+        gtm_spec = get_builtin_default_gtm_spec()
+        st.sidebar.success("Cargado: `Contenedor de referencia (integrado por defecto)`")
     else:
         uploaded_gtm = st.sidebar.file_uploader("Subir exportación JSON de GTM", type=["json"], key="gtm_up")
         if uploaded_gtm:
@@ -2459,7 +2453,7 @@ def main() -> None:
     parser.add_argument(
         "--gtm",
         default=DEFAULT_GTM_PATH,
-        help=f"Ruta al archivo JSON del contenedor de GTM (por defecto: {DEFAULT_GTM_PATH})",
+        help="Ruta al archivo JSON del contenedor de GTM (por defecto usa el contenedor de referencia integrado)",
     )
     parser.add_argument(
         "--output",
@@ -2491,11 +2485,11 @@ def main() -> None:
         print("  streamlit run ga4_event_analyzer.py")
         return
 
-    if os.path.exists(args.gtm):
+    if not args.gtm:
+        gtm_spec = get_builtin_default_gtm_spec()
+    elif os.path.exists(args.gtm):
         with open(args.gtm, "r", encoding="utf-8") as f:
             gtm_spec = parse_gtm_container(json.load(f))
-    elif args.gtm == DEFAULT_GTM_PATH:
-        gtm_spec = get_builtin_default_gtm_spec()
     else:
         print(f"Error: No se encuentra el archivo GTM en '{args.gtm}'", file=sys.stderr)
         sys.exit(1)
