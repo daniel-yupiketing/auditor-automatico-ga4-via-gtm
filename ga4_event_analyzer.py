@@ -41,14 +41,14 @@ OPTIONAL_PARAMS_BY_EVENT = {
     "services": {"items", "items_names"},
     "logout": {"method"},
     "begin_checkout": {"coupon"},
-    "add_shipping_info": {"coupon"},
+    "add_shipping_info": {"coupon", "shipping_tier"},
     "add_payment_info": {"coupon"},
-    "purchase": {"coupon"},
+    "purchase": {"coupon", "shipping", "tax"},
 }
 
 
 def is_param_optional_for_event(ev_name: str, param_name: str) -> bool:
-    if param_name == "coupon":
+    if param_name in ("coupon", "shipping_tier", "shipping", "tax"):
         return True
     return param_name in OPTIONAL_PARAMS_BY_EVENT.get(ev_name, set())
 
