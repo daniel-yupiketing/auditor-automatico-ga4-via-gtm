@@ -20,10 +20,15 @@ REQUIRED_ITEM_FIELDS = [
     "item_id",
     "item_name",
     "price",
-    "item_brand",
-    "item_category",
     "quantity",
+    "currency",
 ]
+
+WARNING_ITEM_FIELDS = {
+    "price",
+    "quantity",
+    "currency",
+}
 
 # Parámetros opcionales aplicables ÚNICAMENTE a eventos personalizados (NO recomendados por Google).
 # En los eventos recomendados por Google (login, sign_up, view_item_list, select_item, view_promotion,
@@ -481,9 +486,10 @@ def validate_items_array(items: Any, event_name: str) -> List[Dict[str, str]]:
             continue
 
         for req_field in REQUIRED_ITEM_FIELDS:
+            is_warn_field = req_field in WARNING_ITEM_FIELDS
             if req_field not in item:
                 issues.append({
-                    "severity": "warning" if req_field in ("item_brand", "item_category", "quantity") else "error",
+                    "severity": "warning" if is_warn_field else "error",
                     "field": f"eventModel.items[{i}].{req_field}",
                     "message": f"Falta la propiedad '{req_field}' en items[{i}].",
                 })
@@ -492,7 +498,7 @@ def validate_items_array(items: Any, event_name: str) -> List[Dict[str, str]]:
                 inv, reason = is_empty_or_invalid_value(val)
                 if inv:
                     issues.append({
-                        "severity": "warning" if req_field in ("item_brand", "item_category") else "error",
+                        "severity": "warning" if is_warn_field else "error",
                         "field": f"eventModel.items[{i}].{req_field}",
                         "message": f"Propiedad '{req_field}' en items[{i}] inválida: {reason}.",
                     })
@@ -508,7 +514,7 @@ def validate_items_array(items: Any, event_name: str) -> List[Dict[str, str]]:
                             })
                         except ValueError:
                             issues.append({
-                                "severity": "error",
+                                "severity": "warning",
                                 "field": f"eventModel.items[{i}].price",
                                 "message": f"'price' en items[{i}] no es un número válido ('{val}').",
                             })
