@@ -1201,10 +1201,11 @@ def run_autonomous_audit(
                             const navSkipRegex = /^(particulares|empresas|autónomos|ayuda|blog|soy cliente|mi cuenta|acceso|login|tienda|cobertura|quiénes somos|aviso legal|privacidad|cookies)$/i;
 
                             const selector = [
-                                '[data-dla-io-observed] a, [data-dla-io-observed] button, [data-dla-io-observed] [role="button"]',
+                                '[data-dla-io-observed] a, [data-dla-io-observed] button, [data-dla-io-observed] [role="button"], [data-dla-io-observed] [class*="MuiButton"], [data-dla-io-observed] [class*="btn"]',
                                 '[class*="promo"] a, [class*="promo"] button, [class*="banner"] a, [class*="banner"] button, [class*="hero"] a, [class*="hero"] button, [class*="slide"] a, [class*="slide"] button, [class*="swiper"] a, [class*="swiper"] button',
                                 '[class*="card"] a, [class*="card"] button, [class*="tarif"] a, [class*="tarif"] button, [class*="rate"] a, [class*="rate"] button',
-                                'main a[href], main button, main [role="button"]'
+                                '[class*="MuiButtonBase-root"], [class*="MuiButton-root"], [class*="btn"], [role="button"]',
+                                'a[href], button'
                             ].join(', ');
 
                             const rawEls = Array.from(document.querySelectorAll(selector));
@@ -1213,29 +1214,45 @@ def run_autonomous_audit(
                             const otherList = [];
                             const seenContainers = new Set();
 
+                            const getCardContext = (el) => {
+                                const semantic = el.closest('[data-dla-io-observed], [class*="promo"], [class*="banner"], [class*="hero"], [class*="swiper-slide"], [class*="slide"], [class*="card"], [class*="tarif"], article, section');
+                                if (semantic) return semantic;
+                                let curr = el.parentElement;
+                                for (let depth = 0; depth < 5 && curr && curr !== document.body; depth++) {
+                                    const t = (curr.innerText || '').trim();
+                                    if (t.length >= 25 && t.length <= 450) return curr;
+                                    curr = curr.parentElement;
+                                }
+                                return el.parentElement || el;
+                            };
+
                             rawEls.forEach((el, idx) => {
                                 const rect = el.getBoundingClientRect();
                                 const style = window.getComputedStyle(el);
                                 if (rect.width < 15 || rect.height < 15 || style.visibility === 'hidden' || style.display === 'none') return;
                                 if (el.id && el.id.toLowerCase().includes('onetrust')) return;
-                                if (el.closest('#onetrust-consent-sdk, footer, header, nav')) return;
+                                if (el.closest('#onetrust-consent-sdk, footer, header, nav, [class*="footerMenu"], [class*="header"], [class*="navbar"]')) return;
 
                                 const imgAlt = el.querySelector('img') ? (el.querySelector('img').getAttribute('alt') || '') : '';
-                                const txt = (el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || imgAlt || el.value || '')
+                                const hrefVal = el.getAttribute('href') || '';
+                                const fallbackHrefLabel = hrefVal && hrefVal !== '#' && !hrefVal.startsWith('javascript:')
+                                    ? 'Enlace ' + hrefVal.replace(/^https?:\\/\\/[^/]+/i, '').slice(0, 40)
+                                    : '';
+                                const txt = (el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || imgAlt || el.value || fallbackHrefLabel || '')
                                     .trim()
                                     .replace(/\\s+/g, ' ')
                                     .slice(0, 70);
                                 if (!txt || navSkipRegex.test(txt)) return;
 
-                                const container = el.closest('[data-dla-io-observed], [class*="promo"], [class*="banner"], [class*="hero"], [class*="swiper-slide"], [class*="slide"], [class*="card"], [class*="tarif"], article, section');
-                                const containerText = container ? (container.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 140) : txt;
+                                const container = getCardContext(el);
+                                const containerText = container ? (container.innerText || '').trim().replace(/\\s+/g, ' ').slice(0, 180) : txt;
                                 const containerCls = container ? (container.className || '').toString().toLowerCase() : '';
                                 const elCls = (el.className || '').toString().toLowerCase();
                                 const combinedCls = containerCls + ' ' + elCls;
-                                const lowerContext = (containerText + ' ' + txt + ' ' + (el.getAttribute('href') || '')).toLowerCase();
+                                const lowerContext = (containerText + ' ' + txt + ' ' + hrefVal).toLowerCase();
 
                                 // Agrupar por tarjeta/banner para probar distintos productos y promociones
-                                const cardSig = `${el.tagName}:${txt.toLowerCase().slice(0, 25)}::${containerText.slice(0, 40).toLowerCase()}`;
+                                const cardSig = `${el.tagName}:${txt.toLowerCase().slice(0, 25)}::${hrefVal.slice(0, 35)}::${containerText.slice(0, 60).toLowerCase()}`;
                                 if (seenContainers.has(cardSig)) return;
                                 seenContainers.add(cardSig);
 
@@ -1249,11 +1266,11 @@ def run_autonomous_audit(
                                     if (lowerContext.includes(tk)) promoScore += 30;
                                 });
 
-                                if (/(card|tarif|product|rate|pack|bundle|item|catalogo|comparador)/.test(combinedCls)) {
+                                if (/(card|tarif|product|rate|pack|bundle|item|catalogo|comparador|bono|prepago|fibra|movil)/.test(combinedCls) || /(tarif|bono|gb|fibra|movil|prepago|contrato)/.test(lowerContext)) {
                                     itemScore += 45;
                                 }
                                 itemTokens.forEach((tk) => {
-                                    if (lowerContext.includes(tk)) itemScore += 20;
+                                    if (lowerContext.includes(tk)) itemScore += 25;
                                 });
 
                                 if (el.closest('[data-dla-io-observed]')) {
@@ -1273,6 +1290,7 @@ def run_autonomous_audit(
                                         autoId,
                                         tag: el.tagName.toLowerCase(),
                                         text: txt,
+                                        href: hrefVal,
                                         category: 'view_promotion -> select_promotion',
                                         score: promoScore
                                     });
@@ -1281,6 +1299,7 @@ def run_autonomous_audit(
                                         autoId,
                                         tag: el.tagName.toLowerCase(),
                                         text: txt,
+                                        href: hrefVal,
                                         category: 'view_item_list -> select_item',
                                         score: itemScore
                                     });
@@ -1289,6 +1308,7 @@ def run_autonomous_audit(
                                         autoId,
                                         tag: el.tagName.toLowerCase(),
                                         text: txt,
+                                        href: hrefVal,
                                         category: 'interacción general',
                                         score: 10
                                     });
@@ -1314,36 +1334,69 @@ def run_autonomous_audit(
                     )
 
                     page.evaluate("window.__dlaBlockNav = true")
-                    for cand in candidates:
-                        auto_id = cand["autoId"]
-                        label_desc = f"clic en <{cand['tag']}> «{cand['text']}» [{cand['category']}]"
+                    for cand_idx, cand in enumerate(candidates):
+                        tag_name = cand["tag"]
+                        text_val = cand["text"]
+                        href_val = cand.get("href") or ""
+                        label_desc = f"clic en <{tag_name}> «{text_val}» [{cand['category']}]"
                         try:
+                            # Localizar tanto por data-dla-autoid como por texto/href por si hubo re-render o page.goto
+                            auto_id = cand["autoId"]
                             loc = page.locator(f'[data-dla-autoid="{auto_id}"]').first
                             if loc.count() == 0:
+                                if href_val:
+                                    loc = page.locator(f'{tag_name}[href="{href_val}"]').first
+                                if loc.count() == 0 and text_val and not text_val.startswith("Enlace "):
+                                    loc = page.locator(f'{tag_name}:has-text({json.dumps(text_val[:25])})').first
+                            if loc.count() == 0:
                                 continue
+
                             before_count = len(captured_events)
                             page.evaluate(f"window.__dlaCurrentAction = {json.dumps(label_desc)}")
-                            loc.scroll_into_view_if_needed(timeout=1800)
-                            page.wait_for_timeout(250)
-                            loc.click(timeout=2000, force=False)
+                            try:
+                                loc.scroll_into_view_if_needed(timeout=1500)
+                            except Exception:
+                                pass
+                            page.wait_for_timeout(200)
+
+                            # Disparar click nativo en JS sobre el elemento (evita navegación MPA de <a> mientras ejecuta onClick de React/MUI/GTM)
+                            clicked_ok = loc.evaluate(
+                                """(el) => {
+                                    const preventNav = (ev) => {
+                                        if (ev.target && ev.target.closest && ev.target.closest('a')) {
+                                            ev.preventDefault();
+                                        }
+                                    };
+                                    window.addEventListener('click', preventNav, true);
+                                    try {
+                                        el.click();
+                                        return true;
+                                    } finally {
+                                        window.removeEventListener('click', preventNav, true);
+                                    }
+                                }"""
+                            )
+                            if not clicked_ok:
+                                continue
                             page.wait_for_timeout(550)
 
-                            # Si por navegación SPA o redirección JS cambió la URL, registramos eventos y volvemos a target_url
+                            # Si aun así cambió la URL por window.location, volvemos a target_url y re-hidratamos
                             if normalize_url(page.url) != normalize_url(target_url):
-                                page.wait_for_timeout(700)
+                                page.wait_for_timeout(600)
                                 page.goto(target_url, wait_until="domcontentloaded", timeout=20000)
                                 page.wait_for_timeout(1200)
-                                page.evaluate("window.__dlaBlockNav = true")
+                                page.evaluate(guard_js)
 
                             after_count = len(captured_events)
-                            if after_count > before_count:
-                                new_evs = [
-                                    e.get("eventName")
-                                    for e in captured_events[before_count:after_count]
-                                    if e.get("eventName") and not str(e.get("eventName")).startswith("gtm.")
-                                ]
-                                if new_evs:
-                                    log_step(f"  ⚡ {label_desc} -> disparó: {', '.join(new_evs)}")
+                            new_evs = [
+                                e.get("eventName")
+                                for e in captured_events[before_count:after_count]
+                                if e.get("eventName") and not str(e.get("eventName")).startswith("gtm.")
+                            ]
+                            if new_evs:
+                                log_step(f"  ⚡ {label_desc} -> disparó: {', '.join(new_evs)}")
+                            else:
+                                log_step(f"  🖱️ {label_desc} -> sin evento de GA4 asociado")
 
                             # Cerrar posibles modales abiertos tras el clic
                             page.keyboard.press("Escape")
