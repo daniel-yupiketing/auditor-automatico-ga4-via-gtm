@@ -2021,8 +2021,6 @@ def run_streamlit_app() -> None:
         return
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown(f"**Contenedor:** `{gtm_spec['container_name']}`")
-    st.sidebar.markdown(f"**ID público:** `{gtm_spec['public_id']}`")
     st.sidebar.markdown(f"**Eventos de GA4 configurados:** `{len(gtm_spec['event_rules'])}`")
 
     with st.expander("📋 Ver catálogo de eventos y parámetros requeridos según GTM", expanded=False):
