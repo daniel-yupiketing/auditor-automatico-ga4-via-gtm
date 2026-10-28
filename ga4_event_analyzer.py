@@ -40,10 +40,16 @@ OPTIONAL_PARAMS_BY_EVENT = {
     "funnel_step": {"items", "items_names"},
     "services": {"items", "items_names"},
     "logout": {"method"},
+    "begin_checkout": {"coupon"},
+    "add_shipping_info": {"coupon"},
+    "add_payment_info": {"coupon"},
+    "purchase": {"coupon"},
 }
 
 
 def is_param_optional_for_event(ev_name: str, param_name: str) -> bool:
+    if param_name == "coupon":
+        return True
     return param_name in OPTIONAL_PARAMS_BY_EVENT.get(ev_name, set())
 
 IGNORED_SYSTEM_EVENTS = {
