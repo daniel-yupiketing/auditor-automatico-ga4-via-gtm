@@ -1981,6 +1981,40 @@ def generate_csv_report(report: Dict[str, Any], deduplicate: bool = True) -> str
 # =====================================================================
 # INTERFAZ STREAMLIT (Se ejecuta si se lanza con `streamlit run`)
 # =====================================================================
+def check_app_pin_access() -> bool:
+    """
+    Comprueba si la aplicación está protegida por un PIN configurado
+    en la variable de entorno APP_PIN. Si no está configurada, permite acceso libre.
+    """
+    import streamlit as st
+    expected_pin = os.environ.get("APP_PIN", "").strip()
+    if not expected_pin:
+        return True
+
+    if st.session_state.get("pin_authenticated", False):
+        return True
+
+    st.markdown("### 🔒 Acceso protegido")
+    st.markdown("Introduce el PIN de acceso para continuar:")
+
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        entered_pin = st.text_input(
+            "PIN de acceso:",
+            type="password",
+            max_chars=20,
+            key="app_pin_input",
+            placeholder="Introduce el PIN",
+        )
+        if st.button("Acceder", type="primary"):
+            if entered_pin.strip() == expected_pin:
+                st.session_state["pin_authenticated"] = True
+                st.rerun()
+            else:
+                st.error("PIN incorrecto. Inténtalo de nuevo.")
+    return False
+
+
 def run_streamlit_app() -> None:
     import streamlit as st
     import pandas as pd
@@ -1990,6 +2024,9 @@ def run_streamlit_app() -> None:
         page_icon="🔍",
         layout="wide",
     )
+
+    if not check_app_pin_access():
+        return
 
     st.title("🔍 Analizador de eventos de GA4 frente al contenedor de GTM")
     st.markdown(
